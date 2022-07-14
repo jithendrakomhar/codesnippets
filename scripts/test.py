@@ -1,0 +1,1 @@
+print('{http://www.talend.org/properties}Property')
