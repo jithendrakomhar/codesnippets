@@ -16,8 +16,10 @@ class test_class:
 
 
         df1=df_emp.merge(df_dept,on='deptno',how='left',suffixes=('_1','_2'))
-
         print(df1)
+        df2=df1.groupby('deptno')
+        print(df2.first())
+
 
 
 def main():

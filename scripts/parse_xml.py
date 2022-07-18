@@ -2,7 +2,7 @@ import os
 import xml.etree.ElementTree as ET
 
 
-xml_root_folder='D:/NPW/POC/cacf/cacf-postfiles_2022-07-01-092003/XML/Talend/ESUREN/process_mr/ESURN_JOB_SPARK/LOT1/'
+xml_root_folder='D:/NPW/POC/CACF/cacf-postfiles_2022-07-01-092003/Talend/XML_NEW/'
 
 log_fle_name='xml_log.txt'
 log_file = open(log_fle_name, "w")
