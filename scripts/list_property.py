@@ -5,7 +5,7 @@ import pathlib
 import shutil
 
 root_folder='D:/NPW/POC/CACF/cacf-postfiles_2022-07-01-092003/Talend/XML/'
-dest_root_folder='D:/NPW/POC/CACF/cacf-postfiles_2022-07-01-092003/Talend/XML1/'
+dest_root_folder='D:/NPW/POC/CACF/cacf-postfiles_2022-07-01-092003/Talend/XML_NEW1/'
 
 for root, dirs, files in os.walk(root_folder, topdown=True):
    for file in files:
