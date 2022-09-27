@@ -1,31 +1,38 @@
 import os 
 import xml.etree.ElementTree as ET
 
+xml_dir='src/'
+log_dir='log/'
 
-xml_root_folder='D:/NPW/POC/CACF/cacf-postfiles_2022-07-01-092003/Talend/XML_NEW/'
+xml_name='inf_sample.xml'
 
-log_fle_name='xml_log.txt'
+node_name='./POWERMART/REPOSITORY'
+node_attribute='NAME'
+
+
+xml_file_name=xml_dir + xml_name
+log_fle_name=log_dir + xml_name + ".log"
+
 log_file = open(log_fle_name, "w")
 
-for root, dirs, files in os.walk(xml_root_folder, topdown=True):
-   for file in files:
-       if file.endswith(".item"):
-        xml_file_name_abs=os.path.join(root,file)
-        xml_file_name_rel=xml_file_name_abs.replace(xml_root_folder,'')
 
-        try:
+try:
 
-            mytree = ET.parse(xml_file_name_abs)
-            myroot = mytree.getroot()
+    mytree = ET.parse(xml_file_name)
+    myroot = mytree.getroot()
 
-            if(myroot.findall('node')):
-                    for x in myroot.findall('node'):
-                        component_name=xml_file_name_rel+"|"+x.attrib['componentName']+"\n"
-                        log_file.write(component_name)
+    for country in myroot.findall('country'):
+        if country.attrib['name'] == 'Panama':
+            print(country.find('rank').attrib['updated'])
 
-            else:
-                    component_name=xml_file_name_rel+"|"+'No Talend Components Found'+"\n"
-                    log_file.write(component_name)
-        except:
-               log_file.write(xml_file_name_rel+'| Not  a valid XML'+"\n")
+    if(myroot.findall(node_name)):
+        for node_nm in myroot.findall(node_name):
+            node_attribute_value=node_nm.attrib[node_attribute]+"\n"
+            log_file.write(node_attribute_value)
+
+    else:
+                        transform_name="No node with the name "  + node_name + " Found in XML"+"\n"
+                        log_file.write(transform_name)
+except:
+        log_file.write(log_file+'| Not  a valid XML'+"\n")
 log_file.close()

@@ -1,7 +1,7 @@
 import os 
 import zipfile
 
-folder_path='E:\old\Jithu_New\MRAsnowflake'
+folder_path='D:/NPW/Projects/CACF/test-zip'
 
 for root,dirs,files in os.walk(folder_path):
     for file in files:
