@@ -1,10 +1,14 @@
 import os 
+import pandas as pd 
 
-root_folder='ESURN_ViewBuilder_Alimentation_DMT_AUDIT_ALL-0.1.0\ESURN_ViewBuilder_Alimentation_DMT_AUDIT_ALL\items\ref_normes_bigdata\context '
-f1='D:/NPW/Projects/CACF/test-zip '
-f2='MAPR_0.1.item'
-dest_root_folder=os.path.join(f1,root_folder,f2)
+file_path='log/xml_log.txt'
 
-print(dest_root_folder)
+df = pd.read_csv(file_path,header=None,names=["Sequence"])
 
+log_fle_name='log/split_job.txt'
+log_file = open(log_fle_name, "w")
+
+for index,row in df.iterrows():
+    jobname= row[0].split("\\")[0] + "|"+  row[0].split("\\")[-1].split("|")[0] + "|" + row[0] + "\n"
+    log_file.write(jobname)
 
