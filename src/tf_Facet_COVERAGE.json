@@ -1,0 +1,1927 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "type": "string",
+            "metadata": "Data Factory name"
+        },
+        "CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('factoryName'), '/tf_Facet_COVERAGE')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "dt_Begin_task_load_pre",
+                        "type": "Script",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "linkedServiceName": {
+                            "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "typeProperties": {
+                            "scripts": [
+                                {
+                                    "parameters": [
+                                        {
+                                            "name": "I_LOAD_CYCLE_ID",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.i_load_cycle_id",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "I_TASK_NAME",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.i_Facet_Name",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        }
+                                    ],
+                                    "type": "Query",
+                                    "text": {
+                                        "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.USP_DWH_FRMK_BEGIN_TASK(?,?)')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "dt_Begin_task_load",
+                        "type": "Script",
+                        "dependsOn": [
+                            {
+                                "activity": "dt_Begin_task_load_pre",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "linkedServiceName": {
+                            "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "typeProperties": {
+                            "scripts": [
+                                {
+                                    "parameters": [
+                                        {
+                                            "name": "I_LOAD_CYCLE_ID",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.i_load_cycle_id",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "I_TASK_NAME",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.i_Facet_Name",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "O_LOAD_STATUS_CD",
+                                            "type": "String",
+                                            "direction": "Output",
+                                            "size": "10000"
+                                        }
+                                    ],
+                                    "type": "Query",
+                                    "text": {
+                                        "value": "@concat('SELECT LOAD_STATUS_CD FROM DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.DWH_FRMK_LOAD_TASK WHERE LOAD_CYCLE_ID = ? AND TASK_NAME_UK = ?')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "If Condition",
+                        "type": "IfCondition",
+                        "dependsOn": [
+                            {
+                                "activity": "dt_Begin_task_load",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "expression": {
+                                "value": "@contains(activity('dt_Begin_task_load').output.resultSets[0]['rows'][0].LOAD_STATUS_CD,'CLOSE')",
+                                "type": "Expression"
+                            },
+                            "ifFalseActivities": [
+                                {
+                                    "name": "tf_Facet_COVERAGE_sub",
+                                    "type": "ExecutePipeline",
+                                    "dependsOn": [],
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "pipeline": {
+                                            "referenceName": "tf_Facet_COVERAGE_sub01",
+                                            "type": "PipelineReference"
+                                        },
+                                        "waitOnCompletion": true,
+                                        "parameters": {
+                                            "i_cycle_name": {
+                                                "value": "@pipeline().parameters.i_cycle_name",
+                                                "type": "Expression"
+                                            },
+                                            "i_load_cycle_id": {
+                                                "value": "@pipeline().parameters.i_load_cycle_id",
+                                                "type": "Expression"
+                                            },
+                                            "i_Facet_Name": {
+                                                "value": "@pipeline().parameters.i_Facet_Name",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {},
+                    "cancelAfter": {}
+                },
+                "parameters": {
+                    "i_cycle_name": {
+                        "type": "string"
+                    },
+                    "i_load_cycle_id": {
+                        "type": "string"
+                    },
+                    "i_Facet_Name": {
+                        "type": "string"
+                    }
+                },
+                "folder": {
+                    "name": "AV/AV_30_RDV_TOPICS/FACETTE_COVERAGE"
+                },
+                "annotations": [],
+                "lastPublishTime": "2022-08-05T14:37:54Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/pipelines/tf_Facet_COVERAGE_sub01')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/tf_Facet_COVERAGE_sub01')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "tf_load_hub_coverage_rdv",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "tf_load_hub_coverage_policy_rdv",
+                                "type": "PipelineReference"
+                            },
+                            "waitOnCompletion": true,
+                            "parameters": {
+                                "I_LOAD_CYCLE_ID": {
+                                    "value": "@pipeline().parameters.i_load_cycle_id",
+                                    "type": "Expression"
+                                },
+                                "I_CYCLE_NAME": {
+                                    "value": "@pipeline().parameters.i_cycle_name",
+                                    "type": "Expression"
+                                },
+                                "I_NAME_OBJECT": {
+                                    "value": "Facette COVERAGE - HUB_COVERAGE",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "name": "tf_load_sat_coverage_rdv",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [
+                            {
+                                "activity": "tf_load_hub_coverage_rdv",
+                                "dependencyConditions": [
+                                    "Completed"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "tf_load_sat_coverage_rdv",
+                                "type": "PipelineReference"
+                            },
+                            "waitOnCompletion": true,
+                            "parameters": {
+                                "I_LOAD_CYCLE_ID": {
+                                    "value": "@pipeline().parameters.i_load_cycle_id",
+                                    "type": "Expression"
+                                },
+                                "I_CYCLE_NAME": {
+                                    "value": "@pipeline().parameters.i_cycle_name",
+                                    "type": "Expression"
+                                },
+                                "I_NAME_OBJECT": {
+                                    "value": "Facette COVERAGE - SAT_COVERAGE",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "name": "tf_load_link_coverage_policy_rdv",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [
+                            {
+                                "activity": "tf_load_sat_coverage_rdv",
+                                "dependencyConditions": [
+                                    "Completed"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "tf_load_link_coverage_policy_rdv",
+                                "type": "PipelineReference"
+                            },
+                            "waitOnCompletion": true,
+                            "parameters": {
+                                "I_LOAD_CYCLE_ID": {
+                                    "value": "@pipeline().parameters.i_load_cycle_id",
+                                    "type": "Expression"
+                                },
+                                "I_CYCLE_NAME": {
+                                    "value": "@pipeline().parameters.i_cycle_name",
+                                    "type": "Expression"
+                                },
+                                "I_NAME_OBJECT": {
+                                    "value": "Facette COVERAGE - LINK_COVERAGE_POLICY",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "name": "tf_load_sat_death_claim",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [
+                            {
+                                "activity": "tf_load_link_coverage_policy_rdv",
+                                "dependencyConditions": [
+                                    "Completed"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "tf_load_sat_DEATH_CLAIM",
+                                "type": "PipelineReference"
+                            },
+                            "waitOnCompletion": true,
+                            "parameters": {
+                                "I_LOAD_CYCLE_ID": {
+                                    "value": "@pipeline().parameters.i_load_cycle_id",
+                                    "type": "Expression"
+                                },
+                                "I_CYCLE_NAME": {
+                                    "value": "@pipeline().parameters.i_cycle_name",
+                                    "type": "Expression"
+                                },
+                                "I_NAME_OBJECT": {
+                                    "value": "Facette COVERAGE - SAT_DEATH_CLAIM",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "name": "If Condition1",
+                        "type": "IfCondition",
+                        "dependsOn": [
+                            {
+                                "activity": "Wait",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "expression": {
+                                "value": "@equals(variables('o_error_facet'),1)",
+                                "type": "Expression"
+                            },
+                            "ifFalseActivities": [
+                                {
+                                    "name": "dt_end_task_load",
+                                    "type": "Script",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "I_LOAD_CYCLE_ID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_TASK_NAME",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.i_Facet_Name",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.USP_DWH_FRMK_END_TASK(?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ],
+                            "ifTrueActivities": [
+                                {
+                                    "name": "dt_error_task_load",
+                                    "type": "Script",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "ENV",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().globalParameters.ENV",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_TASK_NAME",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.i_Facet_Name",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_LOAD_CYCLE_ID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.i_load_cycle_id",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_LOAD_STATUS_CD",
+                                                        "type": "String",
+                                                        "value": "ERROR",
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.SP_CONV_LOAD_ERROR_TASK(?,?,?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "Assignment_Error_00",
+                        "type": "SetVariable",
+                        "dependsOn": [
+                            {
+                                "activity": "tf_load_hub_coverage_rdv",
+                                "dependencyConditions": [
+                                    "Failed"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "variableName": "o_error_facet",
+                            "value": "1"
+                        }
+                    },
+                    {
+                        "name": "Assignment_Error_01",
+                        "type": "SetVariable",
+                        "dependsOn": [
+                            {
+                                "activity": "tf_load_sat_coverage_rdv",
+                                "dependencyConditions": [
+                                    "Failed"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "variableName": "o_error_facet",
+                            "value": "1"
+                        }
+                    },
+                    {
+                        "name": "Assignment_Error_02",
+                        "type": "SetVariable",
+                        "dependsOn": [
+                            {
+                                "activity": "tf_load_link_coverage_policy_rdv",
+                                "dependencyConditions": [
+                                    "Failed"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "variableName": "o_error_facet",
+                            "value": "1"
+                        }
+                    },
+                    {
+                        "name": "Assignment_Error_03",
+                        "type": "SetVariable",
+                        "dependsOn": [
+                            {
+                                "activity": "tf_load_sat_death_claim",
+                                "dependencyConditions": [
+                                    "Failed"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "variableName": "o_error_facet",
+                            "value": "1"
+                        }
+                    },
+                    {
+                        "name": "Wait",
+                        "type": "Wait",
+                        "dependsOn": [
+                            {
+                                "activity": "tf_load_sat_death_claim",
+                                "dependencyConditions": [
+                                    "Completed"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "waitTimeInSeconds": 2
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {},
+                    "cancelAfter": {}
+                },
+                "parameters": {
+                    "i_cycle_name": {
+                        "type": "string"
+                    },
+                    "i_load_cycle_id": {
+                        "type": "string"
+                    },
+                    "i_Facet_Name": {
+                        "type": "string"
+                    }
+                },
+                "variables": {
+                    "o_error_facet": {
+                        "type": "String",
+                        "defaultValue": "0"
+                    }
+                },
+                "folder": {
+                    "name": "AV/AV_30_RDV_TOPICS/FACETTE_COVERAGE"
+                },
+                "annotations": [],
+                "lastPublishTime": "2022-08-13T11:51:23Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/pipelines/tf_load_hub_coverage_policy_rdv')]",
+                "[concat(variables('factoryId'), '/pipelines/tf_load_sat_coverage_rdv')]",
+                "[concat(variables('factoryId'), '/pipelines/tf_load_link_coverage_policy_rdv')]",
+                "[concat(variables('factoryId'), '/pipelines/tf_load_sat_DEATH_CLAIM')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/tf_load_hub_coverage_policy_rdv')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "dt_Begin_task_load_pre",
+                        "type": "Script",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "linkedServiceName": {
+                            "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "typeProperties": {
+                            "scripts": [
+                                {
+                                    "parameters": [
+                                        {
+                                            "name": "I_LOAD_CYCLE_ID",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "I_TASK_NAME",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        }
+                                    ],
+                                    "type": "Query",
+                                    "text": {
+                                        "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.USP_DWH_FRMK_BEGIN_TASK(?,?)')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "If Condition",
+                        "type": "IfCondition",
+                        "dependsOn": [
+                            {
+                                "activity": "dt_Begin_task_load",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "expression": {
+                                "value": "@contains(activity('dt_Begin_task_load').output.resultSets[0]['rows'][0].LOAD_STATUS_CD,'CLOSE')",
+                                "type": "Expression"
+                            },
+                            "ifFalseActivities": [
+                                {
+                                    "name": "dt_end_task_load",
+                                    "type": "Script",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "dt_load_Object",
+                                            "dependencyConditions": [
+                                                "Succeeded"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "I_LOAD_CYCLE_ID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_TASK_NAME",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.USP_DWH_FRMK_END_TASK(?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "dt_load_Object",
+                                    "type": "Script",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "ENV",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().globalParameters.ENV",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "CURRENTRUNID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@concat(pipeline().Pipeline,'-',pipeline().RunId)",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('call DB_AV_',pipeline().globalParameters.ENV,'_DWH.RDV.SP_CONV_INSERT_AV_COVERAGE_HUB_COVERAGE(?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "dt_error_task_load",
+                                    "type": "Script",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "dt_load_Object",
+                                            "dependencyConditions": [
+                                                "Failed"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "ENV",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().globalParameters.ENV",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_TASK_NAME",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_LOAD_CYCLE_ID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_LOAD_STATUS_CD",
+                                                        "type": "String",
+                                                        "value": "ERROR",
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.SP_CONV_LOAD_ERROR_TASK(?,?,?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "dt_Begin_task_load",
+                        "type": "Script",
+                        "dependsOn": [
+                            {
+                                "activity": "dt_Begin_task_load_pre",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "linkedServiceName": {
+                            "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "typeProperties": {
+                            "scripts": [
+                                {
+                                    "parameters": [
+                                        {
+                                            "name": "I_LOAD_CYCLE_ID",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "I_TASK_NAME",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "O_LOAD_STATUS_CD",
+                                            "type": "String",
+                                            "direction": "Output",
+                                            "size": "10000"
+                                        }
+                                    ],
+                                    "type": "Query",
+                                    "text": {
+                                        "value": "@concat('SELECT LOAD_STATUS_CD FROM DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.DWH_FRMK_LOAD_TASK WHERE LOAD_CYCLE_ID = ? AND TASK_NAME_UK = ?')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {},
+                    "cancelAfter": {}
+                },
+                "parameters": {
+                    "I_LOAD_CYCLE_ID": {
+                        "type": "string"
+                    },
+                    "I_CYCLE_NAME": {
+                        "type": "string"
+                    },
+                    "I_NAME_OBJECT": {
+                        "type": "string"
+                    }
+                },
+                "folder": {
+                    "name": "AV/AV_30_RDV_TOPICS/FACETTE_COVERAGE"
+                },
+                "annotations": [],
+                "lastPublishTime": "2022-08-05T11:52:43Z"
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/tf_load_sat_coverage_rdv')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "dt_Begin_task_load_pre",
+                        "type": "Script",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "linkedServiceName": {
+                            "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "typeProperties": {
+                            "scripts": [
+                                {
+                                    "parameters": [
+                                        {
+                                            "name": "I_LOAD_CYCLE_ID",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "I_TASK_NAME",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        }
+                                    ],
+                                    "type": "Query",
+                                    "text": {
+                                        "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.USP_DWH_FRMK_BEGIN_TASK(?,?)')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "If Condition",
+                        "type": "IfCondition",
+                        "dependsOn": [
+                            {
+                                "activity": "dt_Begin_task_load",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "expression": {
+                                "value": "@contains(activity('dt_Begin_task_load').output.resultSets[0]['rows'][0].LOAD_STATUS_CD,'CLOSE')",
+                                "type": "Expression"
+                            },
+                            "ifFalseActivities": [
+                                {
+                                    "name": "dt_end_task_load",
+                                    "type": "Script",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "dt_load_Object",
+                                            "dependencyConditions": [
+                                                "Succeeded"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "I_LOAD_CYCLE_ID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_TASK_NAME",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.USP_DWH_FRMK_END_TASK(?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "dt_load_Object",
+                                    "type": "Script",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "ENV",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().globalParameters.ENV",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "CURRENTRUNID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@concat(pipeline().Pipeline,'-',pipeline().RunId)",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('call DB_AV_',pipeline().globalParameters.ENV,'_DWH.RDV.SP_CONV_INSERT_AV_COVERAGE_SAT_COVERAGE(?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "dt_error_task_load",
+                                    "type": "Script",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "dt_load_Object",
+                                            "dependencyConditions": [
+                                                "Failed"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "ENV",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().globalParameters.ENV",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_TASK_NAME",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_LOAD_CYCLE_ID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_LOAD_STATUS_CD",
+                                                        "type": "String",
+                                                        "value": "ERROR",
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.SP_CONV_LOAD_ERROR_TASK(?,?,?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "dt_Begin_task_load",
+                        "type": "Script",
+                        "dependsOn": [
+                            {
+                                "activity": "dt_Begin_task_load_pre",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "linkedServiceName": {
+                            "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "typeProperties": {
+                            "scripts": [
+                                {
+                                    "parameters": [
+                                        {
+                                            "name": "I_LOAD_CYCLE_ID",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "I_TASK_NAME",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "O_LOAD_STATUS_CD",
+                                            "type": "String",
+                                            "direction": "Output",
+                                            "size": "10000"
+                                        }
+                                    ],
+                                    "type": "Query",
+                                    "text": {
+                                        "value": "@concat('SELECT LOAD_STATUS_CD FROM DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.DWH_FRMK_LOAD_TASK WHERE LOAD_CYCLE_ID = ? AND TASK_NAME_UK = ?')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {},
+                    "cancelAfter": {}
+                },
+                "parameters": {
+                    "I_LOAD_CYCLE_ID": {
+                        "type": "string"
+                    },
+                    "I_CYCLE_NAME": {
+                        "type": "string"
+                    },
+                    "I_NAME_OBJECT": {
+                        "type": "string"
+                    }
+                },
+                "folder": {
+                    "name": "AV/AV_30_RDV_TOPICS/FACETTE_COVERAGE"
+                },
+                "annotations": [],
+                "lastPublishTime": "2022-08-05T11:52:43Z"
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/tf_load_link_coverage_policy_rdv')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "dt_Begin_task_load_pre",
+                        "type": "Script",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "linkedServiceName": {
+                            "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "typeProperties": {
+                            "scripts": [
+                                {
+                                    "parameters": [
+                                        {
+                                            "name": "I_LOAD_CYCLE_ID",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "I_TASK_NAME",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        }
+                                    ],
+                                    "type": "Query",
+                                    "text": {
+                                        "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.USP_DWH_FRMK_BEGIN_TASK(?,?)')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "If Condition",
+                        "type": "IfCondition",
+                        "dependsOn": [
+                            {
+                                "activity": "dt_Begin_task_load",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "expression": {
+                                "value": "@contains(activity('dt_Begin_task_load').output.resultSets[0]['rows'][0].LOAD_STATUS_CD,'CLOSE')",
+                                "type": "Expression"
+                            },
+                            "ifFalseActivities": [
+                                {
+                                    "name": "dt_end_task_load",
+                                    "type": "Script",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "dt_load_Object",
+                                            "dependencyConditions": [
+                                                "Succeeded"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "I_LOAD_CYCLE_ID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_TASK_NAME",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.USP_DWH_FRMK_END_TASK(?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "dt_load_Object",
+                                    "type": "Script",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "ENV",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().globalParameters.ENV",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "CURRENTRUNID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@concat(pipeline().Pipeline,'-',pipeline().RunId)",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('call DB_AV_',pipeline().globalParameters.ENV,'_DWH.RDV.SP_CONV_INSERT_AV_COVERAGE_LINK_COVERAGE(?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "dt_error_task_load",
+                                    "type": "Script",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "dt_load_Object",
+                                            "dependencyConditions": [
+                                                "Failed"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "ENV",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().globalParameters.ENV",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_TASK_NAME",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_LOAD_CYCLE_ID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_LOAD_STATUS_CD",
+                                                        "type": "String",
+                                                        "value": "ERROR",
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.SP_CONV_LOAD_ERROR_TASK(?,?,?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "dt_Begin_task_load",
+                        "type": "Script",
+                        "dependsOn": [
+                            {
+                                "activity": "dt_Begin_task_load_pre",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "linkedServiceName": {
+                            "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "typeProperties": {
+                            "scripts": [
+                                {
+                                    "parameters": [
+                                        {
+                                            "name": "I_LOAD_CYCLE_ID",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "I_TASK_NAME",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "O_LOAD_STATUS_CD",
+                                            "type": "String",
+                                            "direction": "Output",
+                                            "size": "10000"
+                                        }
+                                    ],
+                                    "type": "Query",
+                                    "text": {
+                                        "value": "@concat('SELECT LOAD_STATUS_CD FROM DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.DWH_FRMK_LOAD_TASK WHERE LOAD_CYCLE_ID = ? AND TASK_NAME_UK = ?')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {},
+                    "cancelAfter": {}
+                },
+                "parameters": {
+                    "I_LOAD_CYCLE_ID": {
+                        "type": "string"
+                    },
+                    "I_CYCLE_NAME": {
+                        "type": "string"
+                    },
+                    "I_NAME_OBJECT": {
+                        "type": "string"
+                    }
+                },
+                "folder": {
+                    "name": "AV/AV_30_RDV_TOPICS/FACETTE_COVERAGE"
+                },
+                "annotations": [],
+                "lastPublishTime": "2022-08-05T11:52:44Z"
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/tf_load_sat_DEATH_CLAIM')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "dt_Begin_task_load_pre",
+                        "type": "Script",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "linkedServiceName": {
+                            "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "typeProperties": {
+                            "scripts": [
+                                {
+                                    "parameters": [
+                                        {
+                                            "name": "I_LOAD_CYCLE_ID",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "I_TASK_NAME",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        }
+                                    ],
+                                    "type": "Query",
+                                    "text": {
+                                        "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.USP_DWH_FRMK_BEGIN_TASK(?,?)')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "If Condition",
+                        "type": "IfCondition",
+                        "dependsOn": [
+                            {
+                                "activity": "dt_Begin_task_load",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "expression": {
+                                "value": "@contains(activity('dt_Begin_task_load').output.resultSets[0]['rows'][0].LOAD_STATUS_CD,'CLOSE')",
+                                "type": "Expression"
+                            },
+                            "ifFalseActivities": [
+                                {
+                                    "name": "dt_end_task_load",
+                                    "type": "Script",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "dt_load_Object",
+                                            "dependencyConditions": [
+                                                "Succeeded"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "I_LOAD_CYCLE_ID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_TASK_NAME",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.USP_DWH_FRMK_END_TASK(?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "dt_load_Object",
+                                    "type": "Script",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "ENV",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().globalParameters.ENV",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "CURRENTRUNID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@concat(pipeline().Pipeline,'-',pipeline().RunId)",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('call DB_AV_',pipeline().globalParameters.ENV,'_DWH.RDV.SP_CONV_INSERT_AV_DEATH_CLAIM_CLAIM_EXTRAC_DV_SAT_DEATH_CLAIM(?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "dt_error_task_load",
+                                    "type": "Script",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "dt_load_Object",
+                                            "dependencyConditions": [
+                                                "Failed"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "parameters": [
+                                                    {
+                                                        "name": "ENV",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().globalParameters.ENV",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_TASK_NAME",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_LOAD_CYCLE_ID",
+                                                        "type": "String",
+                                                        "value": {
+                                                            "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                            "type": "Expression"
+                                                        },
+                                                        "direction": "Input"
+                                                    },
+                                                    {
+                                                        "name": "I_LOAD_STATUS_CD",
+                                                        "type": "String",
+                                                        "value": "ERROR",
+                                                        "direction": "Input"
+                                                    }
+                                                ],
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "@concat('CALL DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.SP_CONV_LOAD_ERROR_TASK(?,?,?,?)')",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "dt_Begin_task_load",
+                        "type": "Script",
+                        "dependsOn": [
+                            {
+                                "activity": "dt_Begin_task_load_pre",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "linkedServiceName": {
+                            "referenceName": "[parameters('CNX_AV_DEV_SNOWFLAKE_STG_REPOSITORY')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "typeProperties": {
+                            "scripts": [
+                                {
+                                    "parameters": [
+                                        {
+                                            "name": "I_LOAD_CYCLE_ID",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_LOAD_CYCLE_ID",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "I_TASK_NAME",
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.I_NAME_OBJECT",
+                                                "type": "Expression"
+                                            },
+                                            "direction": "Input"
+                                        },
+                                        {
+                                            "name": "O_LOAD_STATUS_CD",
+                                            "type": "String",
+                                            "direction": "Output",
+                                            "size": "10000"
+                                        }
+                                    ],
+                                    "type": "Query",
+                                    "text": {
+                                        "value": "@concat('SELECT LOAD_STATUS_CD FROM DB_AV_',pipeline().globalParameters.ENV,'_STG.REPOSITORY.DWH_FRMK_LOAD_TASK WHERE LOAD_CYCLE_ID = ? AND TASK_NAME_UK = ?')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {},
+                    "cancelAfter": {}
+                },
+                "parameters": {
+                    "I_LOAD_CYCLE_ID": {
+                        "type": "string"
+                    },
+                    "I_CYCLE_NAME": {
+                        "type": "string"
+                    },
+                    "I_NAME_OBJECT": {
+                        "type": "string"
+                    }
+                },
+                "folder": {
+                    "name": "AV/AV_30_RDV_TOPICS/FACETTE_COVERAGE"
+                },
+                "annotations": [],
+                "lastPublishTime": "2022-08-05T11:52:43Z"
+            },
+            "dependsOn": []
+        }
+    ]
+}

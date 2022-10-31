@@ -1,0 +1,66 @@
+# a = [[1,2,1,1],
+#     [2,1,1,4],
+#     [1,2,4,1],
+#     [2,3,4,3]]
+
+#    [[2,2,1,1],
+#     [2,2,1,4],
+#     [2,2,4,1],
+#     [2,3,4,3]]
+
+#    [[1,1,1,1],
+#     [1,1,1,4],
+#     [1,2,4,1],
+#     [1,3,4,3]]
+
+#     [[4,4,4,4],
+#     [4,4,4,4],
+#     [4,2,4,1],
+#     [1,3,4,3]]
+
+
+
+
+import heapq as hp
+
+graph =  [[1,2,1,1],
+         [2,1,1,3],
+         [1,2,4,1],
+         [2,3,3,3]]
+dict = {}
+print(" Original graph Before Move " , graph)
+for i in range(len(graph)):
+    for j in range(len(graph[0])):
+        val = graph[i][j]
+        num = dict.get(graph[i][j],0) + 1
+        dict[val]=num
+
+hp.heapify(list(dict.items()))
+
+#pick a[0][0], a[0][1] 
+
+graph[0][0] = graph[0][1]
+
+print(" After First move graph" , graph)
+Keymax = max(zip(dict.values(), dict.keys()))[1]
+# For Max element proceed to move
+
+for i  in range(len(graph)) :
+    for j in range(len(graph)):
+        if (graph[i][j] ==1):
+            row,col = i,j
+
+for i  in range(row) :
+    for j in range(col):
+        graph[i][j] = Keymax
+
+print(" After Second move graph" , graph)
+
+
+
+
+
+
+
+
+
