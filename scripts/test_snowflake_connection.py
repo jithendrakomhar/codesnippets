@@ -1,11 +1,9 @@
-#!/usr/bin/env python
-import snowflake
-from snowflake import connection
+import snowflake.connector as snowflake
 
-schema_name='MODEL'
+schema_name='REPOSITORY'
 database_name='DB_AV_DEV_STG'
 
-conn = snowflake.connection.connector(
+conn = snowflake.Connect(
                     user='QA_KOMHAR',
                     password='hI@oc9#jrO@T',
                     account='NEXT_PATHWAY_PARTNER.us-east-1',
