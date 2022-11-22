@@ -1,0 +1,23 @@
+{
+    "sqltools.connections": [
+        {
+            "authenticator": "SNOWFLAKE",
+            "ocspOptions": {
+                "ocspFailOpen": true
+            },
+            "snowflakeOptions": {
+                "clientSessionKeepAlive": true,
+                "clientSessionKeepAliveHeartbeatFrequency": 3600
+            },
+            "previewLimit": 50,
+            "driver": "Snowflake",
+            "name": "NPW-Snowflake",
+            "group": "NPW",
+            "account": "NEXT_PATHWAY_PARTNER.us-east-1",
+            "username": "QA_KOMHAR",
+            "database": "komhar",
+            "warehouse": "infa_poc",
+            "password": "hI@oc9#jrO@T"
+        }
+    ]
+}

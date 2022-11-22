@@ -1,0 +1,1 @@
+select * from komhar.hyd.payment_dtls;
