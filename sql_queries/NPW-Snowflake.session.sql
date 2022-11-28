@@ -1,1 +1,1 @@
-select * from komhar.hyd.payment_dtls;
+select * from komhar.hyd.emp;
